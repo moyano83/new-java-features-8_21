@@ -624,3 +624,16 @@ Gatherer<Movie, Map<String, List<Movie>>, Map<String, List<Movie>>> genreSorterG
     }
 );
 ```
+
+### Simple web server
+
+Available from java 18, allows you to create a simple web server which server files and folders from your machine. It supports GET and HEAD only. 
+We can launch the webserver like this:
+
+```shell
+jwebserver --port 8080 --root /path/to/serve 
+```
+
+This will serve the files in the root folder `/path/to/serve` at port 8080.
+
+### New HTTP Client
