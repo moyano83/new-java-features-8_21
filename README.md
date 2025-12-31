@@ -719,6 +719,10 @@ module moduleB {
 
 #### Unnamed modules and automatic modules
 
-If you have legacy code that is not modularized, you can still use it in a modularized application as it will be imported as an unamed module. All the
-packages in the unamed module are accessible to all other modules, but the unamed module can't access packages from other modules unless they are 
-exported. Similarly, if you have a jar file that doesn't contain a `module-info.java` file, it will be treated as an automatic module.
+If you have legacy code that is not modularized, you can still use it in a modularized application as it will be imported as an unnamed module. 
+You can access the name of the module from a class using `SomeClass.class.getModule().getName()`.
+All the packages in the unnamed module are accessible to all other modules, but the unnamed module can't access packages from other modules unless 
+they are exported.
+We can run an unnamed module as usual with `java -cp app.jar com.example.Main` or we can run a modularized application with 
+`java --module-path mods -m moduleName/com.example.Main` This command will create something called automatic module and pass the `moduleName` as 
+the module name to all the jars in the module path.
