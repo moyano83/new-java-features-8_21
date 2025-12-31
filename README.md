@@ -637,3 +637,88 @@ jwebserver --port 8080 --root /path/to/serve
 This will serve the files in the root folder `/path/to/serve` at port 8080.
 
 ### New HTTP Client
+
+Introduced in java 11, the new HTTP client support HTTP/2 and Websockets and has built in support for asynchronous and asynchronous operations. Example of a synchronous GET request:
+
+```java 
+HttpClient client = HttpClient.newHttpClient();
+HttpRequest request = HttpRequest.newBuilder()
+    .connectionTimeout(10, TimeUnit.SECONDS)
+    .uri(URI.create("https://api.example.com/data"))
+    .build();
+
+private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule())
+        .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+// Synchronous request, the second argument specifies the handler for the response. You can also use sendAsync for asynchronous requests which 
+// returns a CompletableFuture
+HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());  
+System.out.println("Response status code: " + response.statusCode()); 
+System.out.println("Response body: " + objectMapper.readValue(response.body(), Movie.class)); // Deserializes the object into a Movie instance
+```
+
+#### Asynchronous client
+
+An example of an asynchronous request using the http client:
+
+```java 
+HttpClient client = HttpClient.newHttpClient();
+HttpRequest request = HttpRequest.newBuilder()
+    .connectionTimeout(10, TimeUnit.SECONDS)
+    .uri(URI.create("https://api.example.com/data"))
+    .build();
+
+private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule())
+        .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false); 
+CompletableFuture<List<Movie>> response = client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        .thenApply(stringHttpResponse ->{
+            try {
+                return objectMapper.readValue(stringHttpResponse.body(), new TypeReference<>(){}); // We need this to parse into the List of Movies
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        });
+```
+
+The response needs to be extracted from the `CompletableFuture` instance, for example by calling the `get()` method or chaining more operations 
+using `thenApply`, `thenAccept`, etc.
+
+### Java Platform Module System (JPMS) or project jigsaw
+
+Introduced in Java 9, it allows to modularize your application into smaller parts called modules. Each module can declare which other modules it 
+requires and which packages it exports for other modules to use. The benefits of this modularization are:
+
+    * Better encapsulation: Modules can hide their internal implementation details and only expose the necessary APIs.
+    * Smaller jar files: Reduce the process footprint and improve the application startup time.
+    * Improved maintainability: Modules can be developed, tested, and deployed independently, making it easier to manage large codebases.
+    * Reduced complexity: By breaking down an application into smaller modules, it becomes easier to understand and reason about the code.
+    * Enhanced performance: The module system allows for better optimization of the application by only loading the necessary modules at runtime.
+    * Clean separation of boundaries and stricter access control
+
+A module is defined by creating a file named `module-info.java` in the root of the module source folder. Inside this file we define the module name,
+the required modules and the exported packages. Example of a module definition:
+
+```java
+module com.example.myapp {
+    requires java.sql; // Requires the java.sql module
+    requires com.example.utils; // Requires another custom module
+    exports com.example.myapp.api; // Exports the package com.example.myapp.api for other modules to use
+    exports com.example.myapp.services;
+}
+```
+
+To compile a module we need to specify the module path using the `--module-path` option and the source path using the `--source-path` option. 
+Imagine you need to compile a module C which depends from another module B and which as well depends on a third module A. To define these sort of 
+transitive dependencies where Module C requires Module A, we can use the `requires transitive` clause in the module B definition:
+
+```java
+module moduleB {
+    requires transitive moduleA; // Module A will be available to modules that require module B
+    exports moduleB.api;
+}
+```
+
+#### Unnamed modules and automatic modules
+
+If you have legacy code that is not modularized, you can still use it in a modularized application as it will be imported as an unamed module. All the
+packages in the unamed module are accessible to all other modules, but the unamed module can't access packages from other modules unless they are 
+exported. Similarly, if you have a jar file that doesn't contain a `module-info.java` file, it will be treated as an automatic module.
